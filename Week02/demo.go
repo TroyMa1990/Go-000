@@ -61,7 +61,7 @@ func BizMissionQueue(ch chan GrpcResponse) {
 			var res GrpcResponse
 			select {
 				case res = <-ch:
-					if res.err ==nil {
+					if res.err == nil {
 						//这里处理正常数据业务逻辑
 						...
 						log.Printf("Ident[%d] BizId[%v] BizMissionQueue Current Handle: %v", cnt, BizId, err)
