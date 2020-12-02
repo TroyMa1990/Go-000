@@ -12,9 +12,11 @@ import (
 )
 
 var (
-	chans sync.Map
-	ctrl  *control.Ctrl
-	BizId string = "1"
+	chans 	 sync.Map
+	ctrl  	 *control.Ctrl
+	BizId 	 string = "1"
+	identKey string = "CycleIdent"
+	cnt      int64  = 0
 )
 
 type GrpcResponse struct {
@@ -36,27 +38,14 @@ func Service() (*Goods, error) {
 	return Dao()
 }
 
-func Business(ch chan GrpcResponse) error {
-	ctrl, err = control.NewControler()
-	if err != nil {
-		log.Printf("Failed To Init Status Redis: %v", err)
-	}
-	defer ctrl.Close()
-	//此处检测redis业务暂停信号
-	for {
-		if owner, err := ctrl.GetStop(context.TODO()); err == codes.BizStatusExists {
-			time.Sleep(3 * time.Second)
-			continue
-		}
-		break
-	}
+func Business(ch chan GrpcResponse,ident int) error {
 	//此处消费数据库
 	resp, err := Service()
 	//直接交给实时的业务处理队列
 	ch <- GrpcResponse{bizId: BizId, ord: resp, err: err} 
-	//记录日志
 	if  err != nil {
-		log.Printf("Some Error To Query Database With Stack:%v", err)
+		//记录错误堆栈日志
+		log.Printf("Ident[%d] Some Error To Query Database With Stack:%v\n", cnt, err)
 		if errors.Is(err, sql.ErrNoRows) {
 			return codes.BizMissionQueueDBErrNoRows
 		} else {
@@ -71,27 +60,31 @@ func BizMissionQueue(ch chan GrpcResponse) {
 		for {
 			var res GrpcResponse
 			select {
-			case res = <-ch:
-				if res.err ==nil {
-					//这里处理正常数据业务逻辑
-					...
+				case res = <-ch:
+					if res.err ==nil {
+						//这里处理正常数据业务逻辑
+						...
+						log.Printf("Ident[%d] BizId[%v] BizMissionQueue Current Handle: %v", cnt, BizId, err)
+						continue
+					}
+					if errors.Is(res.err, sql.ErrNoRows) {
+						//这里处理空数据业务逻辑
+						...
+						log.Printf("Ident[%d] BizId[%v] BizMissionQueue Empty Handle: %v", cnt, BizId, err)
+					} else {
+						//这里处理数据库错误的降级业务逻辑
+						...
+						log.Printf("Ident[%d] BizId[%v] BizMissionQueue Degradation Handle: %v", cnt, BizId, err)
+					}	
+				case <-time.After(30 * time.Second):
+					//检测业务BizMissionQueue停止信号
+					err := GetQueueStop(BizId)
+					if err != nil {
+						//记录业务错误码
+						log.Printf("Ident[%d] BizId[%v] BizMissionQueue Stop: %v", cnt, BizId, err)
+						return
+					}
 					continue
-				}
-				if errors.Is(res.err, sql.ErrNoRows) {
-					//这里处理空数据业务逻辑
-					...
-				} else {
-					//这里处理数据库错误的降级业务逻辑
-					...
-				}	
-			case <-time.After(30 * time.Second):
-				//检测业务BizMissionQueue停止信号
-				err := GetQueueStop(BizId)
-				if err != nil {
-					log.Printf("BizId[%v] BizMissionQueue Stop: %v", BizId, err)
-					return 
-				}
-				continue
 			}
 		}
 	}
@@ -101,12 +94,28 @@ func main() {
 	ch := make(chan GrpcResponse, 0)
 	// 开启业务处理队列
 	BizMissionQueue(ch)
-	// 保持业务消费持续进行
+	ctrl, err = control.NewControler()
+	if err != nil {
+		log.Printf("Failed To Init Status Redis: %v", err)
+	}
+	defer ctrl.Close()
 	for {
-		if err := Business(ch); err != codes.OK {
+		//获取redis持久化执行轮次，每次加一
+		cnt, err = ctrl.GetIdent(context.TODO(), identKey)
+		log.Printf("Ident[%d] Main Run Stage", cnt)
+		//此处检测redis业务暂停信号
+		for {
+			if owner, err := ctrl.GetStop(context.TODO()); err == codes.BizStatusExists {
+				time.Sleep(3 * time.Second)
+				continue
+			}
+			break
+		}
+		// 保持业务消费持续进行
+		if err := Business(ch,ident); err != codes.OK {
 			time.Sleep(3 * time.Second)
-			//实际上是记录错误码
-			log.Printf("Some Error When BizId[%v] Is Going:%v", BizId, err)
+			//记录业务错误码
+			log.Printf("Ident[%d] Some Error When BizId[%v] Is Going:%v", cnt, BizId, err)
 		}
 	}
 }
