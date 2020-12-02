@@ -51,7 +51,7 @@ func Business(ch chan GrpcResponse) error {
 		break
 	}
 	//此处消费数据库
-	resp, err := service()
+	resp, err := Service()
 	//直接交给实时的业务处理队列
 	ch <- GrpcResponse{bizId: BizId, ord: resp, err: err} 
 	//记录日志
