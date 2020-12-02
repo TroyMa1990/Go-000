@@ -12,24 +12,24 @@ import (
 )
 
 var (
-	chans        sync.Map
-	ctrl         *control.Ctrl
-	BizId        =1
+	chans sync.Map
+	ctrl  *control.Ctrl
+	BizId string = "1"
 )
 
 type GrpcResponse struct {
-	bizId 	string
-	ord   	*pb.Order
-	err   	error
+	bizId string
+	ord   *pb.Order
+	err   error
 }
 
 type Goods struct {
-	Id        	uint64      `json:"id"`
-	Extension 	struct{}    `json:"ext"`
+	Id        uint64   `json:"id"`
+	Extension struct{} `json:"ext"`
 }
 
 func Dao() (*Goods, error) {
-	return nil, errors.Wrap(sql.ErrNoRows, "can not find data")
+	return nil, errors.Wrap(sql.ErrNoRows, "Can Not Find Data")
 }
 
 func Service() (*Goods, error) {
@@ -44,17 +44,16 @@ func Business(ch chan GrpcResponse) error {
 	defer ctrl.Close()
 	//此处检测redis业务暂停信号
 	for {
-		if owner, ss := ctrl.GetStop(context.TODO()); ss == codes.BizStatusExists {
+		if owner, err := ctrl.GetStop(context.TODO()); err == codes.BizStatusExists {
 			time.Sleep(3 * time.Second)
 			continue
 		}
 		break
 	}
-
 	//此处消费数据库
 	resp, err := service()
 	//直接交给实时的业务处理队列
-	ch <- GrpcResponse{bizId: bizId, ord: resp, err: err} 
+	ch <- GrpcResponse{bizId: BizId, ord: resp, err: err} 
 	//记录日志
 	if  err != nil {
 		log.Printf("Some Error To Query Database With Stack:%v", err)
@@ -64,7 +63,6 @@ func Business(ch chan GrpcResponse) error {
 			return codes.BizMissionQueueDBError
 		}
 	}
-	
 	return codes.OK
 }
 
@@ -108,7 +106,7 @@ func main() {
 		if err := Business(ch); err != codes.OK {
 			time.Sleep(3 * time.Second)
 			//实际上是记录错误码
-			log.Printf("Some Error When Biz Is Going:%v", err)
+			log.Printf("Some Error When BizId[%v] Is Going:%v", BizId, err)
 		}
 	}
 }
