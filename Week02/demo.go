@@ -88,7 +88,7 @@ func BizMissionQueue(ch chan GrpcResponse) {
 				//检测业务BizMissionQueue停止信号
 				err := GetQueueStop(BizId)
 				if err != nil {
-					log.Printf("BizId[%v] BizMissionQueue Stop: %v", res.bizId, err)
+					log.Printf("BizId[%v] BizMissionQueue Stop: %v", BizId, err)
 					return 
 				}
 				continue
