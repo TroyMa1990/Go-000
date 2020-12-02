@@ -5,7 +5,7 @@ import (
 	"log"
 	"github.com/pkg/errors"
 	"time"
-	
+
 	codes "xxx.xxx.com/biz/codes"
 	control "xxx.xxx.com/biz/control"
 	pb "xxx.xxxx.com/biz/protos"
@@ -13,7 +13,6 @@ import (
 )
 
 var (
-	chans 	 sync.Map
 	ctrl  	 *control.Ctrl
 	BizId 	 string = "1"
 	identKey string = "CycleIdent"
