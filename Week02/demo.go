@@ -26,7 +26,7 @@ type GrpcResponse struct {
 }
 
 type Goods struct {
-	Id        uint64   `json:"id"`
+	Id        int64   `json:"id"`
 	Extension struct{} `json:"ext"`
 }
 
