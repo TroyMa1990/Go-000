@@ -196,4 +196,18 @@ func RetError() error{
 可能会使上层调用者无法通过错误日志来回溯业务问题，而且有些时候业务逻辑会把某个数据为空的情况也当做一种业务问题来处理，会有正常流、空数据和错误流等多种处理方式。
 
 [作业代码](./demo.go)
+
+
+
+## 作业参考
+dao: 
+
+return errors.Wrapf(code.NotFound, fmt.Sprintf("sql: %s error: %v", sql, err))
+
+
+biz:
+
+if errors.Is(err, code.NotFound} {
+
+}
  
