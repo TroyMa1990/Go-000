@@ -24,19 +24,15 @@ func main() {
 	g.Go(func() error {
 			s <- server.ListenAndServe()
 			fmt.Println("Http Server Throw Error",<-s)
-			forceCloseSignal:="Http Server Close Signal Listen Graceful"
-			c <- forceCloseSignal
+			close(c)
 		}
 	})
 	g.Go(func() error {
 		signal.Notify(c, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 		fmt.Println("Receive Signal:",<-c)
 		timeoutCtx,_ := context.WithTimeout(ctx, ShutDownTime*time.Second)
-		forceCloseHttpServer:="Http Server Close Http Listen Goroutine Graceful"
+		forceCloseHttpServer:=errors.New("Http Server Close Http Listen Goroutine Graceful")
 		s <- forceCloseHttpServer
-		server.Shutdown(timeoutCtx)
-		close(s)
-		close(c)
 		fmt.Printf("Http Shutdown Completed In %d Second",ShutDownTime)
 	})
 	g.Wait()
