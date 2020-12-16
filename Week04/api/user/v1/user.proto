@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package protocUser;
+ 
+
+service User {
+  rpc Find (FindRequest) returns (FindReply) {}
+}
+
+message FindRequest {
+  int64 id = 1;
+}
+
+message FindReply {
+  string nickname = 1;
+}

@@ -1,0 +1,14 @@
+[Unit]
+Description=Local Service
+After=network.target
+Wants=docker.service
+
+[Service]
+Type=forking
+User=troyma
+Restart=on-failure
+RestartSec=10s
+ExecStart=/bin/bash /../bin/restart.sh
+
+[Install]
+WantedBy=multi-user.target
