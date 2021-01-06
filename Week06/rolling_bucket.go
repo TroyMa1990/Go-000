@@ -6,7 +6,7 @@ import (
 )
 
 //RollingBuckets模拟项目桶的时间滚动列表。使用JSON对这个对象进行编码是安全的，以线程安全的方式。
-//这是为了不带锁。前提是桶的总尺寸（NumBuckets*BucketWidth）小于提前执行所需时间的任何持续时间。NumBuckets*BucketWidth>=1。
+//这是为了不带锁。前提是桶的总尺寸（NumBuckets*BucketWidth）小于Advance执行所需时间。NumBuckets*BucketWidth>=1。
 type RollingBuckets struct {
 	NumBuckets   int
 	StartTime    time.Time
